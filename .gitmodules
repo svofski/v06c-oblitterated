@@ -1,0 +1,3 @@
+[submodule "prettyasm"]
+	path = prettyasm
+	url = https://github.com/svofski/prettyasm/
