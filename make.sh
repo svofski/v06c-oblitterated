@@ -26,14 +26,13 @@ maketexts()
       tape_error2.png
       hello1.png
       hello2.png
-      all_my_cycles.png
-      used_to_be.png
-      blitting.png
-      and_i_was_mute.png
-      now_i_unpack.png
-      14_reg_streams.png
-      on_the_fly.png
-      i_am_no_longer.png
+      what_a_strange.png
+      place_i_have_to.png
+      blit_myself.png
+      as_fast_as_i_can.png
+      just_to_stay.png
+      where_i_am.png
+      i_am_fully.png
       oblitterated.png
       an_unlikely.png
       headroom_incident.png

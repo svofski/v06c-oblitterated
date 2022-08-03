@@ -1,6 +1,6 @@
                 ; an unlikely max headroom incident
                 ; svo 2022
-        
+
                 ; plot:
                 ; 1) полная мельтешня из линий
                 ; 2) на ее фоне медленно выползает Макс
@@ -53,7 +53,7 @@ start:
 Restart:
 		lxi sp,100h
 		
-		call ay_stfu
+		call ay_noise
 		
                 ei \ hlt
                 lxi h, colors_nil + 15
@@ -300,30 +300,30 @@ sequence
 
 msgptr          dw msg_sequence                
 msg_sequence    dw msg_hello1, msg_hello2, msg_hello1, msg_hello2
-                dw msg_all_my_cycles
-                dw msg_all_my_cycles
-                dw msg_used_to_be
-                dw msg_used_to_be
-                dw msg_blitting
-                dw msg_blitting
-                dw msg_and_i_was_mute
-                dw msg_and_i_was_mute
-                dw msg_now_i_unpack
-                dw msg_now_i_unpack
-                dw msg_14_reg_streams
-                dw msg_14_reg_streams
-                dw msg_on_the_fly
-                dw msg_on_the_fly
-                dw msg_i_am_no_longer
-                dw msg_i_am_no_longer
+                dw msg_what_a_strange
+                dw msg_place_i_have_to
+                dw msg_blit_myself
+                dw msg_as_fast_as_i_can
+                dw msg_just_to_stay
+                dw msg_where_i_am
+                dw msg_i_am_fully
+                dw msg_i_am_fully
                 dw msg_oblitterated, msg_oblitterated
                 dw msg_oblitterated, msg_oblitterated
                 dw msg_oblitterated, msg_oblitterated
                 dw 0, 0
 
-
-
-
+;1234567890123456
+;
+;what a strange
+;place. i have
+;to blit myself
+;as fast as i can
+;just to stay
+;where i am!
+;
+;i am fully
+;oblitterated
 
 bss_start       equ $                
 ctr8i           db 0
@@ -2361,6 +2361,5 @@ buffer12        equ     0xff00 & bss_end + 256 * 13
 buffer13        equ     0xff00 & bss_end + 256 * 14       
 
 	.end
-
 
 

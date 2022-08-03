@@ -38,84 +38,74 @@ msg_hello2:	db $00,$00,$00,$00,$00,$00,$00,$00
 	db $ff,$ff,$c4,$83,$10,$81,$bf,$ff
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/all_my_cycles.png 64x18
-msg_all_my_cycles:	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/what_a_strange.png 64x18
+msg_what_a_strange:	db $00,$00,$00,$00,$00,$00,$00,$00
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $e1,$99,$e7,$53,$89,$31,$39,$c7
-	db $8c,$99,$e2,$53,$39,$27,$26,$9f
-	db $80,$99,$e5,$43,$38,$27,$20,$87
-	db $8c,$99,$e7,$73,$3f,$27,$33,$f9
-	db $8c,$88,$67,$4f,$8c,$71,$08,$c1
-	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/used_to_be.png 64x18
-msg_used_to_be:	db $00,$00,$00,$00,$00,$00,$00,$00
-	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $fc,$d8,$c7,$38,$63,$e3,$cf,$ff
-	db $fc,$d3,$93,$3c,$c9,$e5,$a7,$ff
-	db $fc,$98,$c6,$3c,$c9,$e1,$87,$ff
-	db $fc,$9e,$5c,$bc,$c9,$e6,$bf,$ff
-	db $ff,$18,$e6,$3c,$e3,$e0,$8f,$ff
+	db $99,$7c,$8e,$3c,$5f,$93,$b1,$87
+	db $99,$52,$dc,$99,$d9,$51,$a7,$bf
+	db $99,$10,$dc,$1c,$cb,$12,$a7,$8f
+	db $95,$52,$dc,$9e,$5b,$53,$24,$bf
+	db $83,$52,$dc,$98,$cb,$53,$b0,$87
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/blitting.png 64x18
-msg_blitting:	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/place_i_have_to.png 64x18
+msg_place_i_have_to:	db $00,$00,$00,$00,$00,$00,$00,$00
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $ff,$f8,$33,$21,$09,$33,$8f,$ff
-	db $ff,$f9,$93,$f3,$9f,$12,$7f,$ff
-	db $ff,$f8,$33,$33,$99,$02,$7f,$ff
-	db $ff,$f9,$93,$33,$99,$22,$67,$ff
-	db $ff,$f8,$31,$33,$99,$33,$87,$ff
-	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/and_i_was_mute.png 64x18
-msg_and_i_was_mute:	db $00,$00,$00,$00,$00,$00,$00,$00
-	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $e7,$f1,$e7,$33,$f8,$f3,$bc,$23
-	db $d3,$f2,$ff,$33,$13,$f1,$3f,$6f
-	db $d2,$32,$e7,$3a,$58,$f2,$ad,$67
-	db $c2,$d2,$e7,$2a,$5e,$73,$ad,$6f
-	db $d2,$d1,$e7,$d7,$18,$f3,$b1,$63
+	db $8c,$e7,$18,$e7,$99,$66,$93,$1f
+	db $94,$d2,$72,$67,$f9,$4a,$97,$b3
+	db $94,$c2,$70,$e7,$99,$4a,$93,$ad
+	db $8c,$d2,$73,$ff,$98,$43,$17,$ad
+	db $9c,$53,$18,$e7,$99,$4b,$91,$b3
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/now_i_unpack.png 64x18
-msg_now_i_unpack:	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/blit_myself.png 64x18
+msg_blit_myself:	db $00,$00,$00,$00,$00,$00,$00,$00
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $cd,$9c,$e7,$39,$ad,$1c,$62,$4f
-	db $c5,$65,$e7,$3d,$a5,$6a,$4e,$4f
-	db $c9,$65,$27,$39,$a9,$68,$4e,$1f
-	db $cd,$64,$a7,$39,$ad,$1a,$4e,$4f
-	db $cc,$9c,$c7,$3c,$25,$32,$62,$67
-	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/14_reg_streams.png 64x18
-msg_14_reg_streams:	db $00,$00,$00,$00,$00,$00,$00,$00
-	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $ce,$38,$c6,$3c,$d8,$cc,$ce,$63
-	db $cc,$39,$5c,$f9,$da,$5a,$44,$4f
-	db $c9,$38,$cc,$fc,$88,$c8,$4a,$67
-	db $c8,$39,$5c,$9e,$5a,$5a,$4e,$73
-	db $cf,$39,$46,$18,$ca,$4a,$4e,$47
+	db $e7,$99,$0f,$39,$26,$38,$ce,$1f
+	db $e1,$9f,$9f,$11,$24,$f2,$4e,$7f
+	db $e4,$99,$9f,$29,$26,$30,$ce,$3f
+	db $e4,$99,$9f,$39,$cf,$93,$ce,$7f
+	db $e1,$89,$9f,$39,$ce,$38,$c2,$7f
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/on_the_fly.png 64x18
-msg_on_the_fly:	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/as_fast_as_i_can.png 64x18
+msg_as_fast_as_i_can:	db $00,$00,$00,$00,$00,$00,$00,$00
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $ff,$e3,$67,$39,$be,$16,$5f,$ff
-	db $ff,$cd,$27,$32,$be,$76,$5f,$ff
-	db $ff,$cd,$47,$10,$8e,$27,$1f,$ff
-	db $ff,$cd,$67,$3b,$a6,$67,$df,$ff
-	db $ff,$e3,$67,$88,$a6,$61,$3f,$ff
+	db $ce,$61,$19,$9f,$f9,$e7,$98,$d9
+	db $b4,$e7,$53,$0e,$33,$ff,$36,$c9
+	db $86,$62,$19,$9d,$b9,$ef,$30,$51
+	db $b7,$66,$dc,$9d,$bc,$ef,$36,$59
+	db $b4,$e6,$d9,$ce,$51,$e7,$96,$59
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 	db $00,$00,$00,$00,$00,$00,$00,$00
-; image assets/i_am_no_longer.png 64x18
-msg_i_am_no_longer:	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/just_to_stay.png 64x18
+msg_just_to_stay:	db $00,$00,$00,$00,$00,$00,$00,$00
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
-	db $ce,$17,$33,$33,$99,$99,$8c,$23
-	db $cc,$92,$31,$25,$92,$99,$3d,$e5
-	db $cc,$95,$32,$25,$92,$89,$3c,$43
-	db $cc,$17,$33,$25,$92,$91,$25,$cd
-	db $cc,$97,$33,$33,$89,$99,$84,$4d
+	db $e7,$f8,$9f,$0c,$7e,$18,$46,$6f
+	db $fc,$93,$8f,$d9,$3c,$fc,$d6,$6f
+	db $e4,$99,$9f,$d9,$3c,$3c,$87,$0f
+	db $e4,$9c,$9f,$d9,$3f,$c4,$93,$ef
+	db $ce,$23,$c7,$dc,$78,$1c,$93,$1f
+	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/where_i_am.png 64x18
+msg_where_i_am:	db $00,$00,$00,$00,$00,$00,$00,$00
+	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	db $f3,$aa,$21,$8f,$9f,$04,$e7,$3f
+	db $f3,$aa,$e9,$27,$9f,$24,$47,$3f
+	db $f2,$a2,$63,$07,$9e,$04,$a7,$3f
+	db $f2,$2a,$e9,$3f,$9e,$64,$e7,$ff
+	db $f0,$6a,$29,$8f,$9e,$64,$e7,$3f
+	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	db $00,$00,$00,$00,$00,$00,$00,$00
+; image assets/i_am_fully.png 64x18
+msg_i_am_fully:	db $00,$00,$00,$00,$00,$00,$00,$00
+	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+	db $f3,$c2,$73,$e1,$24,$cc,$9f,$ff
+	db $f3,$92,$23,$e7,$24,$cc,$9f,$ff
+	db $f3,$92,$53,$e3,$24,$ce,$1f,$ff
+	db $f3,$82,$73,$e7,$24,$cf,$9f,$ff
+	db $f3,$92,$73,$e7,$8c,$46,$79,$27
 	db $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
 	db $00,$00,$00,$00,$00,$00,$00,$00
 ; image assets/oblitterated.png 64x18

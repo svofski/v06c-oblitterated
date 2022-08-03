@@ -90,6 +90,7 @@ dzx0_ldir:
 dzx0_ldir1:
 		ldax d
 		stax b
+                out 12
 		inx d
 		inx b
 		dcx h
