@@ -7,18 +7,10 @@
                 ; 3) мельтешня становится плавной
                 ; 4) появляется надпись 
 		;
-		; ALL MY CYCLES
-		; USED TO BE
-		; BLITTING
-		; AND I WAS MUTE
-		; NOW I UNPACK
-		; 14 REG STREAMS
-		; ON THE FLY
-		; I'M NO LONGER
-		; OBLITTERATED
 		
 		; r.1 полностью развернутый блит с жумпом внутрь: 282 строки, но бывает один кадр 305
 		; r.2 версия с гигачад-16. есть пропуски кадров, но не критично.
+                ; r.3 версия с varblit и сообщениями двойной ширины
 
                 .project oblitterated.rom
                 .tape v06c-rom
@@ -207,8 +199,9 @@ setcolors:
                 lda frame_scroll
                 out 3
                 
-                ;mvi a, 15
-                ;out 2
+                ;;;;;;;
+                mvi a, 15
+                out 2
 
 modesw2:        ; переход на главную процедуру секвенции        
                 call 0
@@ -216,10 +209,13 @@ modesw2:        ; переход на главную процедуру секв
                 ; музон
                 call gigachad_frame
                         
+
+                mvi a, 0
+                out 2
+                ;;;;;;
+
                 jmp foreva_lup
                 
-                ;mvi a, 0
-                ;out 2
 
 sequence_next:  
                 lxi h, seq_index
@@ -475,7 +471,6 @@ phase1_main:
                 sta wipe_height
                 mvi a, 128/8/8
                 sta wipe_width
-                ;sta blit_width
                 call wipe
 
                 lhld wipe_xy
@@ -485,21 +480,22 @@ phase1_main:
                 
                 jmp sequence_next
 phase1_L1
+                ;
+                sta varblit_clip_h
+                ;
+
                 sta wipe_height
                 sta blit_height
                 mvi a, 128/8/8  ;= 2
                 sta wipe_width
                 
-                lxi h, blit_line_c1 + (4 - 2) * blit_linej_sz
-                shld blit_widthj
+                call wipe
 
-                lxi h, hello_jpg
-                shld blit_src1+1
-                lxi h, hello_jpg2
-                shld blit_src2+1
-                call wipe ; можно вообще не вызывать, но тогда грязновато
-                jmp blit
-                ;ret
+                lxi d, varmax_top_a
+                lxi h, varmax_top_b
+                lda wipe_xy
+                mov c, a
+                jmp varblit
                 
 ;; ----------------------------------------------
 ;; phase1: переход между влетом и статической картинкой, мерцание?   
@@ -569,19 +565,36 @@ phase5_setup:
 phase5_main:
                 call msg_sequence_frame
                 ; для ускорения рисуем черепушку отдельно, она уже плечей
-                call blit_full_head
+                call blit_full_head     
+                ;; full static: L268
+                ;; head var torso stat: L253 
+                ;; full var: L249 with 
 blit_banner:
 blit_banner_p1: lxi h, msg_tape_error1
                 shld blit_src1+1
 blit_banner_p2: lxi h, msg_tape_error2
                 shld blit_src2+1
 blit_banner_p3: lxi h, $16f0+0e000h     ; -- top / right corner
+
+                push h
+
                 shld blit_xy
                 mvi a, 18/2             ; text tag height
                 sta blit_height
                 lxi h, blit_line_c1 + (4 - 1) * blit_linej_sz
                 shld blit_widthj
                 call blit
+
+                ; second message
+                pop h
+                mvi a, -8
+                add h
+                mov h, a
+                shld blit_xy
+                call blit
+                ;
+
+
                 lda mainseq_active
                 ora a
                 cz sequence_next
@@ -589,31 +602,17 @@ blit_banner_p3: lxi h, $16f0+0e000h     ; -- top / right corner
 
 blit_full_head
 blit_head:
-                lxi h, hello_jpg
-                shld blit_src1+1
-                lxi h, hello_jpg2
-                shld blit_src2+1
-                lxi h, LOGOXY
-                shld blit_xy
-                mvi a, 122/2            ; head height
-                sta blit_height
-                lxi h, blit_line_c1 + (4 - 2) * blit_linej_sz
-                shld blit_widthj
-                call blit
+                mvi c, LOGOXY & 255
+                lxi d, varmax_top_a
+                lxi h, varmax_top_b
+                call varblit              ; return @ line 201
 
                 ; и плечи пошире
 blit_torso:
-                lxi h, max_bottom
-                shld blit_src1+1
-                lxi h, max_bottom2
-                shld blit_src2+1
-                lxi h, $0447+0e000h
-                shld blit_xy
-                mvi a, 72/2             ; 72 lines
-                sta blit_height
-                lxi h, blit_line_c1 + (4 - 3) * blit_linej_sz
-                shld blit_widthj
-                jmp blit
+                mvi c, $47  
+                lxi d, varmax_bottom_a
+                lxi h, varmax_bottom_b
+                jmp varblit
 
 ;; ----------------------------------------------
 ;; phase6: смываем харю
@@ -664,7 +663,7 @@ phase6_setup:
                 shld wipe_xy
                 call wipe
                 
-                jmp wipe_banner
+                jmp wipe_banner2
                 ;ret
 phase6_main:
                 ;jmp $
@@ -704,21 +703,23 @@ phase6_main:
                 call wipe
                 jmp sequence_next
 phase6_L1
-                sta wipe_height
-                sta blit_height
-                mvi a, 128/8/8 ; 2
-                sta wipe_width
-
-                lxi h, blit_line_c1 + (4 - 2) * blit_linej_sz
-                shld blit_widthj
-
-                lxi h, hello_jpg
-                shld blit_src1+1
-                lxi h, hello_jpg2
-                shld blit_src2+1
-                call wipe ; можно вообще не вызывать, но тогда грязновато
-                jmp blit
-                ;ret
+                ; остаток точно совпадает с phase1_L1
+                jmp phase1_L1
+;                sta wipe_height
+;                sta blit_height
+;                mvi a, 128/8/8 ; 2
+;                sta wipe_width
+;
+;                lxi h, blit_line_c1 + (4 - 2) * blit_linej_sz
+;                shld blit_widthj
+;
+;                lxi h, hello_jpg
+;                shld blit_src1+1
+;                lxi h, hello_jpg2
+;                shld blit_src2+1
+;                call wipe ; можно вообще не вызывать, но тогда грязновато
+;                jmp blit
+;                ;ret
 
                 
                 ; end titles, kinda sorta
@@ -824,8 +825,46 @@ phase9_setup:
 phase9_main:
                 jmp sequence_next
 
-                ; wipe the banner message in its jumpy position
-wipe_banner:
+
+wipe_banner2ex: lhld blit_banner_p3+1
+                mvi a, -8 \ add h \ mov h, a
+                call adj_for_scroll
+                mvi a, 18
+                mov b, h
+                mvi d, 0
+wb2ex_L1:       mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d \ inr h
+                mov m, d \ inr h \ mov m, d; \ inr h
+                dcr a
+                rz
+                dcr l
+                mov h, b
+                jmp wb2ex_L1
+                
+
+
+                ; wipe the (double) banner message in its jumpy position
+wipe_banner2:
+                mvi a, 9 \ sta wipe_height
+                mvi a, 2 \ sta wipe_width
+                lhld blit_banner_p3+1
+                mvi a, -8 \ add h \ mov h, a
+                push h
+                shld wipe_xy
+                call wipe
+                pop h
+                inr l
+                shld wipe_xy
+                jmp wipe
+                ; ret
+
+; maybe this is not needed
+wipe_banner1:
                 mvi a, 9 \ sta wipe_height
                 mvi a, 1 \ sta wipe_width
                 lhld blit_banner_p3+1
@@ -836,7 +875,6 @@ wipe_banner:
                 inr l
                 shld wipe_xy
                 jmp wipe
-                ; ret
 
 MSG_TIME        equ 100
 msg_sequence_frame:
@@ -848,8 +886,8 @@ msg_sequence_next
                 sta msg_timer
                 
                 ; стереть полностью сообщение
-                call wipe_banner
-
+                ;call wipe_banner2
+                call wipe_banner2ex
                 ; установить новое место для сообщения
                 lda rnd16+1
                 ani $f \ adi $e8
@@ -1511,6 +1549,102 @@ colors_nil:     .db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 costab          .db 255,255,255,255,254,254,254,253,253,252,251,250,249,249,247,246,245,244,243,241,240,238,237,235,233,232,230,228,226,224,222,220,217,215,213,210,208,206,203,201,198,195,193,190,187,184,182,179,176,173,170,167,164,161,158,155,152,149,146,142,139,136,133,130,127,124,120,117,114,111,108,105,102,99,96,93,90,87,84,81,78,75,72,69,66,64,61,58,56,53,51,48,46,43,41,39,37,34,32,30,28,26,24,23,21,19,17,16,14,13,12,10,9,8,7,6,5,4,3,3,2,2,1,1,0,0,0,0,0,0,0,0,1,1,2,2,3,3,4,5,6,7,8,9,10,12,13,14,16,17,19,21,23,24,26,28,30,32,34,37,39,41,43,46,48,51,53,56,58,61,64,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108,111,114,117,120,124,127,130,133,136,139,142,146,149,152,155,158,161,164,167,170,173,176,179,182,184,187,190,193,195,198,201,203,206,208,210,213,215,217,220,222,224,226,228,230,232,233,235,237,238,240,241,243,244,245,246,247,249,249,250,251,252,253,253,254,254,254,255,255,255,255
 
 
+
+                ; di
+                ; mvi c, $d0      ; y
+                ; lxi d, frame_A
+                ; lxi h, frame_B
+                ; call varblit
+varblit:
+                ; select glitchy frame
+                call sel_glitchy ; chosen frame in d
+                mov l, c
+                call adj_for_scroll
+                mov c, l
+
+                lxi h, 0
+                dad sp
+                shld varblit_sp
+                xchg
+                sphl
+
+                mov l, c
+
+varblit_clip_h  equ $+1
+                mvi d, 0
+vb_L0:
+                pop b   ; e = first column, d = number of 2-column chunks (0-16)
+                mov a, b
+                ora c
+                jz vb_exit
+
+varblit_plane   equ $+1
+                mvi a, $e0 ; plane msb
+                add c
+                mov h, a        ; hl = screen addr
+
+                mov a, b  ; d = precalculated offset into vbline_16
+                sta vb_M1+1 
+vb_M1:          jmp vbline_16
+vb_L1:
+                .org 0x100 + . & 0xff00
+vbline_16:      pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b \ inr h
+                pop b \ mov m, c \ inr h \ mov m, b; \ inr h
+
+vb_L2:          ; next line (interlaced)
+                dcr l \ dcr l
+                dcr d
+                jnz vb_L0
+                ;jmp vb_L0
+                
+vb_exit:
+                ; restore clip_h because it's so easy to forget
+                xra
+                sta varblit_clip_h
+varblit_sp      equ $+1
+                lxi sp, 0
+                ret
+
+                ; hl = frame A
+                ; de = frame B
+                ; result is swapped sometimes
+sel_glitchy:    lda rnd16+2
+                mov b, a
+                lda framecnt
+                rar \ rar
+                ana b
+                rar
+                rnc
+                xchg
+                ret
+
+                ; l = y coordinate
+                ; result = l adjusted for scroll offset
+                ; CLOBBERS: a
+adj_for_scroll  
+                ; adjust for scroll direction
+                lda fasign 
+                rar
+                lda frame_scroll
+                sbi 0
+                add l
+                mov l, a
+                ret
+
 		; Вывести транспарант посреди экрана
 		; Мы должны немного обгонять луч, чтобы
 		; к началу сканирования первой строки
@@ -1524,7 +1658,7 @@ blit:
 		lxi h, 0
 		dad sp
 		shld blit_sp+1
-blit_src1:	lxi sp, hello_jpg
+blit_src1:	lxi sp, 0
                 lda rnd16+2     ; выбираем когда показывать глючный кадр
                 mov b, a
                 lda framecnt
@@ -1532,7 +1666,7 @@ blit_src1:	lxi sp, hello_jpg
                 ana b
                 rar
                 jnc $+6
-blit_src2:      lxi sp, hello_jpg2
+blit_src2:      lxi sp, 0
 blit_xy_:	lxi h, LOGOXY
                 
                 ; adjust for scroll direction
@@ -1547,10 +1681,10 @@ blit_xy_:	lxi h, LOGOXY
                 mov b, h        ; сохраним в b первый столб
 blit_height     equ $+1
                 mvi a, 124/2    ; ПАРАМЕТР: число пар строк
-                ; ПАРАМЕТР: blit_linej = blit_line1 * (4 - width8) * blit_linej_sz
+                ; ПАРАМЕТР: blit_widthj = blit_line1 * (4 - width8) * blit_linej_sz
 blit_linej_sz   equ blit_line_c2 - blit_line_c1
 blit_widthj     equ $+1                
-blit_linej:      jmp blit_line_c1
+blit_linej:     jmp blit_line_c1 ; этот жумп меняем для установки ширины
 blit_line_c1:   ; [8 columns 1]
                 ; {1}
                 pop d           ; берем два столбца строки в de
@@ -1640,206 +1774,15 @@ bsszero_L1:     mov m, a
                 dcr c
                 jnz bsszero_L1
 
-hello_jpg
-;Opened image max3-top.png 128x120
-db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$0f,$ff,$ff,$ff,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$1f,$ff,$ff,$ff,$e0,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$01,$80,$ff,$ff,$ff,$ff,$f8,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$18,$07,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00,$00,$00
-db $00,$00,$01,$81,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00,$00,$00
-db $00,$00,$06,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00,$00,$00
-db $00,$00,$60,$1f,$ff,$ff,$ff,$ff,$ff,$ff,$e0,$00,$00,$00,$00,$00
-db $00,$00,$80,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00,$00
-db $00,$02,$00,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00,$00
-db $00,$06,$00,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00,$00
-db $00,$08,$0e,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00,$00
-db $00,$10,$1c,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00,$00
-db $00,$20,$20,$03,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00,$00
-db $00,$60,$00,$00,$00,$7f,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00,$00
-db $00,$40,$00,$01,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00
-db $00,$80,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $01,$80,$c0,$1f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $01,$00,$80,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00
-db $02,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $02,$00,$01,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $04,$00,$01,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $04,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $06,$00,$00,$1f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00
-db $02,$00,$c0,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $02,$00,$f0,$03,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00
-db $02,$00,$c0,$07,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00
-db $02,$00,$00,$0f,$ff,$ff,$ef,$ff,$f0,$3c,$3f,$ff,$c0,$00,$00,$00
-db $04,$00,$00,$0f,$ff,$ff,$e7,$ff,$3f,$ff,$ff,$ff,$b0,$00,$00,$00
-db $04,$00,$00,$1f,$ff,$ff,$f3,$fb,$fc,$00,$ff,$ff,$b8,$00,$00,$00
-db $07,$80,$40,$3f,$ff,$ff,$f1,$f3,$e0,$00,$7f,$ff,$f8,$00,$00,$00
-db $00,$80,$00,$7f,$ff,$ff,$e1,$de,$00,$00,$7f,$ff,$f8,$00,$00,$00
-db $00,$80,$00,$ff,$ff,$ff,$ff,$38,$00,$00,$6f,$ff,$f8,$00,$00,$00
-db $01,$c0,$00,$ff,$c0,$00,$f1,$f0,$00,$00,$6f,$ff,$fe,$00,$00,$00
-db $00,$40,$00,$3c,$1f,$fe,$31,$e0,$00,$00,$6f,$ff,$fe,$00,$00,$00
-db $00,$40,$00,$df,$ff,$e7,$ff,$e0,$00,$00,$6f,$ff,$fc,$00,$00,$00
-db $00,$30,$1e,$78,$00,$01,$fe,$40,$00,$00,$6f,$ff,$fe,$00,$00,$00
-db $00,$0e,$13,$80,$00,$00,$27,$e0,$00,$00,$ef,$ff,$fe,$00,$00,$00
-db $00,$02,$07,$00,$00,$00,$0f,$fc,$00,$00,$df,$ff,$fe,$00,$00,$00
-db $00,$02,$1a,$00,$00,$00,$1f,$ff,$00,$03,$3f,$ff,$ff,$00,$00,$00
-db $00,$01,$00,$00,$00,$00,$1f,$ff,$80,$1e,$ff,$ff,$fe,$00,$00,$00
-db $00,$00,$80,$00,$00,$00,$1f,$ff,$f0,$e3,$ff,$ff,$ff,$00,$00,$00
-db $00,$00,$58,$00,$00,$00,$1f,$ff,$ff,$cf,$ff,$ff,$ff,$00,$00,$00
-db $00,$00,$3c,$00,$00,$00,$1f,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00
-db $00,$00,$1f,$00,$00,$00,$1f,$ff,$bf,$ff,$ff,$ff,$ff,$00,$00,$00
-db $00,$00,$09,$c0,$00,$00,$1f,$ff,$cf,$ff,$ff,$ff,$fe,$00,$00,$00
-db $00,$00,$08,$e4,$00,$e0,$1f,$ff,$ef,$3f,$ff,$ff,$b8,$00,$00,$00
-db $00,$00,$04,$0f,$ff,$80,$1f,$fc,$f7,$e3,$ff,$ff,$c0,$00,$00,$00
-db $00,$00,$02,$00,$40,$00,$0c,$0f,$ff,$f0,$ff,$ff,$c0,$00,$00,$00
-db $00,$00,$01,$00,$1f,$00,$00,$1f,$ff,$fc,$3f,$ff,$e0,$00,$00,$00
-db $00,$00,$00,$80,$3e,$00,$00,$3f,$ff,$fc,$1f,$ff,$e0,$00,$00,$00
-db $00,$00,$00,$40,$1c,$00,$00,$7f,$ff,$fe,$3f,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$10,$00,$00,$00,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$08,$00,$00,$00,$ff,$ff,$ff,$9f,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$08,$00,$00,$00,$ff,$c0,$01,$8f,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$04,$00,$00,$00,$38,$1f,$ff,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$02,$00,$00,$00,$03,$ff,$ff,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$01,$00,$00,$00,$0f,$fe,$00,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$00,$80,$00,$00,$3f,$f8,$07,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$00,$40,$00,$00,$78,$00,$7f,$ff,$ff,$f0,$00,$00,$00
-max_bottom
-;Opened image max3-bottom.png 192x67
-db $00,$00,$00,$00,$20,$00,$00,$00,$07,$ff,$ff,$ff,$f0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$10,$00,$00,$00,$0f,$fb,$ff,$ff,$ef,$ff,$ff,$ff,$e0,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$08,$00,$00,$00,$1f,$e7,$ff,$ff,$ef,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00,$00
-db $00,$00,$00,$00,$04,$00,$00,$00,$0f,$3f,$ff,$ff,$cf,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00
-db $00,$00,$00,$00,$03,$00,$00,$00,$01,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$80,$00,$00,$0f,$ff,$ff,$ff,$bf,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$40,$00,$00,$3f,$ff,$ff,$ff,$bf,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$10,$00,$00,$ff,$ff,$ff,$ff,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $00,$00,$00,$00,$00,$0c,$00,$03,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00
-db $00,$00,$00,$00,$00,$20,$00,$0f,$ff,$ff,$ff,$fe,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$00,$00,$60,$00,$1f,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$00,$02,$01,$00,$3f,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00
-db $00,$00,$00,$00,$18,$01,$60,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$bf,$ff,$00,$00,$00
-db $00,$00,$00,$00,$40,$00,$80,$07,$ff,$8f,$ff,$cf,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00
-db $00,$00,$00,$01,$80,$00,$80,$03,$ff,$83,$ff,$3f,$ff,$ff,$ff,$ff,$3f,$ff,$ff,$ff,$ff,$80,$00,$00
-db $00,$00,$00,$0e,$00,$00,$80,$41,$fc,$00,$38,$ff,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$bf,$ff,$c0,$00,$00
-db $00,$00,$00,$3c,$00,$00,$40,$03,$80,$00,$03,$ff,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00
-db $00,$00,$01,$f8,$00,$00,$40,$00,$00,$38,$07,$ff,$ff,$ff,$ff,$fb,$ff,$ff,$ff,$df,$ff,$c0,$00,$00
-db $00,$00,$03,$f0,$00,$00,$40,$00,$00,$e0,$0f,$ff,$ff,$ff,$ff,$f7,$ff,$ff,$ff,$df,$ff,$e0,$00,$00
-db $00,$00,$1e,$00,$00,$00,$20,$00,$00,$00,$1f,$ff,$ff,$ff,$ff,$f7,$ff,$ff,$ff,$ef,$ff,$e0,$00,$00
-db $00,$00,$f0,$00,$00,$00,$20,$00,$00,$00,$7f,$ff,$ff,$ff,$ff,$f9,$ff,$ff,$ff,$ef,$ff,$f8,$00,$00
-db $00,$03,$c0,$00,$00,$00,$20,$00,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$3f,$ff,$ff,$f7,$ff,$ff,$00,$00
-db $00,$07,$80,$00,$00,$00,$20,$00,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$df,$ff,$ff,$f7,$ff,$ff,$80,$00
-db $00,$3e,$00,$00,$00,$00,$10,$00,$00,$00,$7f,$ff,$ff,$ff,$ff,$ff,$fb,$ff,$ff,$f7,$ff,$ff,$c0,$00
-db $00,$f0,$00,$00,$00,$00,$10,$00,$00,$00,$00,$ff,$ff,$ff,$ff,$ff,$fc,$7f,$ff,$f7,$ff,$ff,$f0,$00
-db $03,$c0,$00,$00,$00,$00,$10,$00,$00,$00,$00,$3f,$ff,$ff,$ff,$ff,$fc,$7f,$ff,$f7,$ff,$ff,$f8,$00
-db $07,$c0,$00,$00,$00,$00,$10,$00,$00,$00,$00,$1f,$ff,$ff,$ff,$ff,$fc,$7f,$ff,$f3,$ff,$ff,$f8,$00
-db $3f,$00,$00,$00,$00,$00,$08,$00,$00,$60,$00,$03,$ff,$ff,$ff,$ff,$fc,$ff,$ff,$ff,$ff,$ff,$fc,$00
-db $fe,$00,$00,$00,$00,$00,$08,$00,$00,$e0,$00,$00,$ff,$ff,$ff,$ff,$fc,$ff,$ff,$ff,$ff,$ff,$fe,$00
-db $f8,$00,$00,$00,$00,$00,$08,$00,$01,$c0,$00,$00,$3f,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$ff,$ff,$fe,$00
-db $f0,$00,$00,$00,$00,$00,$04,$00,$03,$c0,$00,$00,$0f,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$ff,$ff,$fe,$00
-db $e0,$00,$00,$00,$00,$00,$04,$00,$07,$80,$00,$70,$03,$ef,$ff,$ff,$fe,$ff,$ff,$f1,$ff,$ff,$ff,$00
-db $c0,$00,$00,$00,$00,$00,$04,$00,$1f,$80,$00,$7f,$fc,$01,$ff,$ff,$ff,$ff,$ff,$fb,$ff,$ff,$ff,$80
-db $c0,$00,$00,$00,$00,$00,$02,$00,$1f,$80,$00,$3f,$ff,$01,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0
-db $80,$00,$00,$00,$00,$00,$02,$00,$3f,$00,$00,$3f,$ff,$01,$ff,$ff,$ff,$ff,$db,$ff,$ff,$ff,$ff,$f0
-db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-
-hello_jpg2
-db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$0f,$ff,$ff,$ff,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$3f,$ff,$ff,$ff,$c0,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$60,$3f,$ff,$ff,$ff,$fe,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$30,$0f,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00,$00,$00
-db $00,$00,$01,$81,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00,$00,$00
-db $00,$00,$01,$83,$ff,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00,$00,$00
-db $00,$00,$30,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00,$00,$00
-db $00,$00,$40,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00,$00
-db $00,$04,$00,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00,$00
-db $00,$06,$00,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00,$00
-db $00,$04,$07,$03,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00,$00
-db $00,$20,$38,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00,$00
-db $00,$08,$08,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00
-db $00,$c0,$00,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$e0,$00,$00,$00,$00
-db $00,$20,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $00,$40,$00,$00,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00
-db $01,$80,$c0,$1f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $02,$01,$00,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$f8,$00,$00,$00,$00
-db $04,$00,$01,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00
-db $01,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00
-db $02,$00,$00,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00
-db $01,$00,$00,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$e0,$00,$00,$00
-db $0c,$00,$00,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $02,$00,$c0,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $02,$00,$f0,$03,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$c0,$00,$00,$00
-db $04,$01,$80,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$80,$00,$00,$00
-db $04,$00,$00,$1f,$ff,$ff,$df,$ff,$e0,$78,$7f,$ff,$80,$00,$00,$00
-db $08,$00,$00,$1f,$ff,$ff,$cf,$fe,$7f,$ff,$ff,$ff,$60,$00,$00,$00
-db $08,$00,$00,$3f,$ff,$ff,$e7,$f7,$f8,$01,$ff,$ff,$70,$00,$00,$00
-db $0f,$00,$80,$7f,$ff,$ff,$e3,$e7,$c0,$00,$ff,$ff,$f0,$00,$00,$00
-db $01,$00,$00,$ff,$ff,$ff,$c3,$bc,$00,$00,$ff,$ff,$f0,$00,$00,$00
-db $00,$20,$00,$3f,$ff,$ff,$ff,$ce,$00,$00,$1b,$ff,$fe,$00,$00,$00
-db $00,$70,$00,$3f,$f0,$00,$3c,$7c,$00,$00,$1b,$ff,$ff,$80,$00,$00
-db $00,$80,$00,$78,$3f,$fc,$63,$c0,$00,$00,$df,$ff,$fc,$00,$00,$00
-db $00,$80,$01,$bf,$ff,$cf,$ff,$c0,$00,$00,$df,$ff,$f8,$00,$00,$00
-db $00,$60,$3c,$f0,$00,$03,$fc,$80,$00,$00,$df,$ff,$fc,$00,$00,$00
-db $00,$0e,$13,$80,$00,$00,$27,$e0,$00,$00,$ef,$ff,$fe,$00,$00,$00
-db $00,$02,$07,$00,$00,$00,$0f,$fc,$00,$00,$df,$ff,$fe,$00,$00,$00
-db $00,$00,$86,$80,$00,$00,$07,$ff,$c0,$00,$cf,$ff,$ff,$c0,$00,$00
-db $00,$01,$00,$00,$00,$00,$1f,$ff,$80,$1e,$ff,$ff,$fe,$00,$00,$00
-db $00,$00,$40,$00,$00,$00,$0f,$ff,$f8,$71,$ff,$ff,$ff,$80,$00,$00
-db $00,$00,$2c,$00,$00,$00,$0f,$ff,$ff,$e7,$ff,$ff,$ff,$80,$00,$00
-db $00,$00,$78,$00,$00,$00,$3f,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00
-db $00,$00,$3e,$00,$00,$00,$3f,$ff,$7f,$ff,$ff,$ff,$fe,$00,$00,$00
-db $00,$00,$04,$e0,$00,$00,$0f,$ff,$e7,$ff,$ff,$ff,$ff,$00,$00,$00
-db $00,$00,$02,$39,$00,$38,$07,$ff,$fb,$cf,$ff,$ff,$ee,$00,$00,$00
-db $00,$00,$02,$07,$ff,$c0,$0f,$fe,$7b,$f1,$ff,$ff,$e0,$00,$00,$00
-db $00,$00,$01,$00,$20,$00,$06,$07,$ff,$f8,$7f,$ff,$e0,$00,$00,$00
-db $00,$00,$00,$40,$07,$c0,$00,$07,$ff,$ff,$0f,$ff,$f8,$00,$00,$00
-db $00,$00,$00,$20,$0f,$80,$00,$0f,$ff,$ff,$07,$ff,$f8,$00,$00,$00
-db $00,$00,$00,$10,$07,$00,$00,$1f,$ff,$ff,$8f,$ff,$fc,$00,$00,$00
-db $00,$00,$00,$20,$00,$00,$01,$ff,$ff,$ff,$ff,$ff,$e0,$00,$00,$00
-db $00,$00,$00,$02,$00,$00,$00,$3f,$ff,$ff,$e7,$ff,$fc,$00,$00,$00
-db $00,$00,$00,$04,$00,$00,$00,$7f,$e0,$00,$c7,$ff,$f8,$00,$00,$00
-db $00,$00,$00,$04,$00,$00,$00,$38,$1f,$ff,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$00,$80,$00,$00,$00,$ff,$ff,$ff,$ff,$fc,$00,$00,$00
-db $00,$00,$00,$00,$40,$00,$00,$03,$ff,$80,$3f,$ff,$fc,$00,$00,$00
-db $00,$00,$00,$00,$80,$00,$00,$3f,$f8,$07,$ff,$ff,$f0,$00,$00,$00
-db $00,$00,$00,$00,$40,$00,$00,$78,$00,$7f,$ff,$ff,$f0,$00,$00,$00
-
-max_bottom2
-db $00,$00,$00,$00,$08,$00,$00,$00,$01,$ff,$ff,$ff,$fc,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$40,$00,$00,$00,$3f,$ef,$ff,$ff,$bf,$ff,$ff,$ff,$80,$00,$00,$00,$00,$00,$00,$00
-db $00,$00,$00,$00,$01,$00,$00,$00,$03,$fc,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$ff,$f0,$00,$00,$00,$00
-db $00,$00,$00,$00,$08,$00,$00,$00,$1e,$7f,$ff,$ff,$9f,$ff,$ff,$ff,$ff,$ff,$ff,$f8,$00,$00,$00,$00
-db $00,$00,$00,$00,$06,$00,$00,$00,$03,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$80,$00,$00,$0f,$ff,$ff,$ff,$bf,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$08,$00,$00,$07,$ff,$ff,$ff,$f7,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$e0,$00,$00,$00
-db $00,$00,$00,$00,$00,$40,$00,$03,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fe,$00,$00,$00,$00
-db $00,$00,$00,$00,$00,$01,$80,$00,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$f8,$00,$00,$00
-db $00,$00,$00,$00,$00,$10,$00,$07,$ff,$ff,$ff,$ff,$3f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$f8,$00,$00,$00
-db $00,$00,$00,$00,$00,$c0,$00,$3f,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$e0,$00,$00,$00
-db $00,$00,$00,$00,$02,$01,$00,$3f,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$fc,$00,$00,$00
-db $00,$00,$00,$00,$18,$01,$60,$7f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$bf,$ff,$00,$00,$00
-db $00,$00,$00,$00,$80,$01,$00,$0f,$ff,$1f,$ff,$9f,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$00,$00,$00
-db $00,$00,$00,$00,$c0,$00,$40,$01,$ff,$c1,$ff,$9f,$ff,$ff,$ff,$ff,$9f,$ff,$ff,$ff,$ff,$c0,$00,$00
-db $00,$00,$00,$0e,$00,$00,$80,$41,$fc,$00,$38,$ff,$ff,$ff,$ff,$fe,$ff,$ff,$ff,$bf,$ff,$c0,$00,$00
-db $00,$00,$00,$07,$80,$00,$08,$00,$70,$00,$00,$7f,$ff,$ff,$ff,$ff,$bf,$ff,$ff,$ff,$ff,$f8,$00,$00
-db $00,$00,$03,$f0,$00,$00,$80,$00,$00,$70,$0f,$ff,$ff,$ff,$ff,$f7,$ff,$ff,$ff,$bf,$ff,$80,$00,$00
-db $00,$00,$03,$f0,$00,$00,$40,$00,$00,$e0,$0f,$ff,$ff,$ff,$ff,$f7,$ff,$ff,$ff,$df,$ff,$e0,$00,$00
-db $00,$00,$07,$80,$00,$00,$08,$00,$00,$00,$07,$ff,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$fb,$ff,$f8,$00,$00
-db $00,$01,$e0,$00,$00,$00,$40,$00,$00,$00,$ff,$ff,$ff,$ff,$ff,$f3,$ff,$ff,$ff,$df,$ff,$f0,$00,$00
-db $00,$0f,$00,$00,$00,$00,$80,$00,$00,$03,$ff,$ff,$ff,$ff,$ff,$fc,$ff,$ff,$ff,$df,$ff,$fc,$00,$00
-db $00,$03,$c0,$00,$00,$00,$10,$00,$00,$00,$7f,$ff,$ff,$ff,$ff,$ff,$ef,$ff,$ff,$fb,$ff,$ff,$c0,$00
-db $00,$07,$c0,$00,$00,$00,$02,$00,$00,$00,$0f,$ff,$ff,$ff,$ff,$ff,$ff,$7f,$ff,$fe,$ff,$ff,$f8,$00
-db $00,$1e,$00,$00,$00,$00,$02,$00,$00,$00,$00,$1f,$ff,$ff,$ff,$ff,$ff,$8f,$ff,$fe,$ff,$ff,$fe,$00
-db $03,$c0,$00,$00,$00,$00,$10,$00,$00,$00,$00,$3f,$ff,$ff,$ff,$ff,$fc,$7f,$ff,$f7,$ff,$ff,$f8,$00
-db $01,$f0,$00,$00,$00,$00,$04,$00,$00,$00,$00,$07,$ff,$ff,$ff,$ff,$ff,$1f,$ff,$fc,$ff,$ff,$fe,$00
-db $0f,$c0,$00,$00,$00,$00,$02,$00,$00,$18,$00,$00,$ff,$ff,$ff,$ff,$ff,$3f,$ff,$ff,$ff,$ff,$ff,$00
-db $fe,$00,$00,$00,$00,$00,$08,$00,$00,$e0,$00,$00,$ff,$ff,$ff,$ff,$fc,$ff,$ff,$ff,$ff,$ff,$fe,$00
-db $f0,$00,$00,$00,$00,$00,$10,$00,$03,$80,$00,$00,$7f,$ff,$ff,$ff,$fd,$ff,$ff,$ff,$ff,$ff,$fc,$01
-db $78,$00,$00,$00,$00,$00,$02,$00,$01,$e0,$00,$00,$07,$ff,$ff,$ff,$ff,$7f,$ff,$ff,$ff,$ff,$ff,$00
-db $70,$00,$00,$00,$00,$00,$02,$00,$03,$c0,$00,$38,$01,$f7,$ff,$ff,$ff,$7f,$ff,$f8,$ff,$ff,$ff,$80
-db $80,$00,$00,$00,$00,$00,$08,$00,$3f,$00,$00,$ff,$f8,$03,$ff,$ff,$ff,$ff,$ff,$f7,$ff,$ff,$ff,$01
-db $60,$00,$00,$00,$00,$00,$01,$00,$0f,$c0,$00,$1f,$ff,$80,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff,$e0
-db $80,$00,$00,$00,$00,$00,$02,$00,$3f,$00,$00,$3f,$ff,$01,$ff,$ff,$ff,$ff,$db,$ff,$ff,$ff,$ff,$f0
-db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; varmax_top_1
+varmax_top_a:
+.include varmax_top_a.inc
+varmax_top_b:
+.include varmax_top_b.inc
+varmax_bottom_a:
+.include varmax_bottom_a.inc
+varmax_bottom_b:
+.include varmax_bottom_b.inc
 
 
 .include messages.inc
@@ -1857,11 +1800,6 @@ n_tasks         equ 14
 ; task stack size 
 task_stack_size equ 22
 
-                xra a
-                out $10
-                
-                mvi a, $c9
-                sta $38
 
 ;brutal_restart:                
 ;                lxi sp, $100
