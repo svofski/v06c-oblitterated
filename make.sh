@@ -26,20 +26,16 @@ maketexts()
       tape_error2.png
       hello1.png
       hello2.png
-      what_a_strange.png
-      place_i_have_to.png
-      blit_myself.png
+      what_a_strange_place.png
+      i_have_to_blit_myself.png
       as_fast_as_i_can.png
-      just_to_stay.png
-      where_i_am.png
+      just_to_stay_where_i_am.png
       i_am_fully.png
       oblitterated.png
-      an_unlikely.png
-      headroom_incident.png
+      an_unlikely_max_headroom_incident.png
       svo2022.png
-      music_by.png
-      firestarter1.png
-      firestarter2.png
+      music_by_firestarter_a.png
+      music_by_firestarter_b.png
       no_longer_inv1.png
       no_longer_inv2.png
       "

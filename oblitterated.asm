@@ -200,8 +200,8 @@ setcolors:
                 out 3
                 
                 ;;;;;;;
-                mvi a, 15
-                out 2
+                ;mvi a, 15
+                ;out 2
 
 modesw2:        ; переход на главную процедуру секвенции        
                 call 0
@@ -210,8 +210,8 @@ modesw2:        ; переход на главную процедуру секв
                 call gigachad_frame
                         
 
-                mvi a, 0
-                out 2
+                ;mvi a, 0
+                ;out 2
                 ;;;;;;
 
                 jmp foreva_lup
@@ -294,14 +294,14 @@ sequence
                 
                 dw 0, 0
 
+                ; сообщения двойной ширины (128, 16 стобцов)
 msgptr          dw msg_sequence                
 msg_sequence    dw msg_hello1, msg_hello2, msg_hello1, msg_hello2
-                dw msg_what_a_strange
-                dw msg_place_i_have_to
-                dw msg_blit_myself
-                dw msg_as_fast_as_i_can
-                dw msg_just_to_stay
-                dw msg_where_i_am
+                dw msg_what_a_strange_place, msg_what_a_strange_place
+                dw msg_i_have_to_blit_myself, msg_i_have_to_blit_myself
+                dw msg_as_fast_as_i_can, msg_as_fast_as_i_can
+                dw msg_just_to_stay_where_i_am
+                dw msg_just_to_stay_where_i_am
                 dw msg_i_am_fully
                 dw msg_i_am_fully
                 dw msg_oblitterated, msg_oblitterated
@@ -557,18 +557,19 @@ phase5_setup:
                 shld modesw1+1
                 mvi a, 1
                 sta mainseq_active
+                lxi h, $e0f0 ; a bogus last message position so that it's wiped safely
+                shld blit_banner_p3+1
                 call msg_sequence_next
                 jmp gigachad_enable
                 ;ret
 
                 ; основная фаза: рисуем все
 phase5_main:
-                call msg_sequence_frame
                 ; для ускорения рисуем черепушку отдельно, она уже плечей
                 call blit_full_head     
-                ;; full static: L268
-                ;; head var torso stat: L253 
-                ;; full var: L249 with 
+
+                call msg_sequence_frame
+                jz p5_L1  ; новое сообщение -> пропускаем рисование, а то кадр
 blit_banner:
 blit_banner_p1: lxi h, msg_tape_error1
                 shld blit_src1+1
@@ -576,25 +577,14 @@ blit_banner_p2: lxi h, msg_tape_error2
                 shld blit_src2+1
 blit_banner_p3: lxi h, $16f0+0e000h     ; -- top / right corner
 
-                push h
-
+                ; all messages are 2x wide
                 shld blit_xy
                 mvi a, 18/2             ; text tag height
                 sta blit_height
-                lxi h, blit_line_c1 + (4 - 1) * blit_linej_sz
+                lxi h, blit_line_c1 + (4 - 2) * blit_linej_sz
                 shld blit_widthj
                 call blit
-
-                ; second message
-                pop h
-                mvi a, -8
-                add h
-                mov h, a
-                shld blit_xy
-                call blit
-                ;
-
-
+p5_L1:
                 lda mainseq_active
                 ora a
                 cz sequence_next
@@ -742,18 +732,14 @@ title_xy_3      equ titleout_xy + 12 * 256 + 3 * 8      ; svo 2022
 title_xy_4      equ titleout_xy + 8 * 256               ; music by firestarter
 text_height     equ 18/2
 text_width      equ 1
-                lxi h, msg_oblitterated
-                shld blit_src1+1
-                shld blit_src2+1
-                lxi h, title_xy_1
-                shld blit_xy
+text_dwidth     equ 2
                 mvi a, text_height
                 sta blit_height
-                mvi a, text_width
+                ;mvi a, text_width
 
+                ; 8-column messages
                 lxi h, blit_line_c1 + (4 - text_width) * blit_linej_sz
                 shld blit_widthj
-                call blit
 
                 lxi h, msg_no_longer_inv1
                 shld blit_src1+1
@@ -763,19 +749,6 @@ text_width      equ 1
                 shld blit_xy
                 call blit
 
-                lxi h, msg_an_unlikely        
-                shld blit_src1+1
-                shld blit_src2+1
-                lxi h, title_xy_2
-                shld blit_xy
-                call blit
-                
-                lxi h, msg_headroom_incident
-                shld blit_src1+1
-                shld blit_src2+1
-                lxi h, title_xy_2 + 8 * 256
-                shld blit_xy
-                call blit
                 
                 lxi h, msg_svo2022
                 shld blit_src1+1
@@ -784,18 +757,28 @@ text_width      equ 1
                 shld blit_xy
                 call blit
                 
-                lxi h, msg_music_by
+                ; double-width texts
+                lxi h, blit_line_c1 + (4 - text_dwidth) * blit_linej_sz
+                shld blit_widthj
+                lxi h, msg_an_unlikely_max_headroom_incident
                 shld blit_src1+1
+                shld blit_src2+1
+                lxi h, title_xy_2
+                shld blit_xy
+                call blit
+
+                lxi h, msg_music_by_firestarter_a
+                shld blit_src1+1
+                lxi h, msg_music_by_firestarter_b
                 shld blit_src2+1
                 lxi h, title_xy_4
                 shld blit_xy
                 call blit
 
-                lxi h, msg_firestarter1
+                lxi h, msg_oblitterated
                 shld blit_src1+1
-                lxi h, msg_firestarter2
                 shld blit_src2+1
-                lxi h, title_xy_4 + 8 * 256
+                lxi h, title_xy_1
                 shld blit_xy
                 call blit
 
@@ -827,26 +810,49 @@ phase9_main:
 
 
 wipe_banner2ex: lhld blit_banner_p3+1
-                mvi a, -8 \ add h \ mov h, a
                 call adj_for_scroll
-                mvi a, 18
+                mvi d, 18
                 mov b, h
-                mvi d, 0
-wb2ex_L1:       mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d \ inr h
-                mov m, d \ inr h \ mov m, d; \ inr h
-                dcr a
+                xra a
+wb2ex_L1:       mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a \ inr h
+                mov m, a \ inr h \ mov m, a; \ inr h
+                dcr d
                 rz
                 dcr l
                 mov h, b
                 jmp wb2ex_L1
-                
 
+wipe_banner2ez: 
+                lxi h, 0
+                dad sp
+                shld wb2ez_sp + 1
+                lhld blit_banner_p3+1
+                call adj_for_scroll
+                mvi d, 16 ; columns
+                lxi b, 0
+                inr l 
+wb2ez_L1:       sphl
+                push b
+                push b
+                push b
+                push b
+                push b
+                push b
+                push b
+                push b
+                push b
+                inr h
+                dcr d
+                jnz wb2ez_L1
+                
+wb2ez_sp:       lxi sp, 0
+                ret
 
                 ; wipe the (double) banner message in its jumpy position
 wipe_banner2:
@@ -863,20 +869,10 @@ wipe_banner2:
                 jmp wipe
                 ; ret
 
-; maybe this is not needed
-wipe_banner1:
-                mvi a, 9 \ sta wipe_height
-                mvi a, 1 \ sta wipe_width
-                lhld blit_banner_p3+1
-                push h
-                shld wipe_xy
-                call wipe
-                pop h
-                inr l
-                shld wipe_xy
-                jmp wipe
-
 MSG_TIME        equ 100
+
+                ; Z = new message
+                ; NZ = not yet
 msg_sequence_frame:
                 lxi h, msg_timer
                 dcr m
@@ -885,32 +881,33 @@ msg_sequence_next
                 mvi a, MSG_TIME
                 sta msg_timer
                 
-                ; стереть полностью сообщение
-                ;call wipe_banner2
-                call wipe_banner2ex
+                ; стереть полностью текущее сообщение
+                ;call wipe_banner2ex  ; 5392
+                call wipe_banner2ez  ; 3104
                 ; установить новое место для сообщения
                 lda rnd16+1
-                ani $f \ adi $e8
+                ani $f \ adi $e0      ; x - столбец
                 sta blit_banner_p3+2
                 lda rnd16+2
                 ani $1f \ adi $d0+2
                 sta blit_banner_p3+1
                 
+                ; загрузить указатели на следующее сообщение
                 lhld msgptr
-ph5a_setup_L1:
+mseq_next_L1:
                 mov e, m
                 inx h
                 mov d, m
                 inx h
                 mov a, d
                 ora e
-                jnz ph5a_setup_L2
-                sta mainseq_active
+                jnz mseq_next_L2
+                sta mainseq_active    ; признак конца секвенции
                 lxi h, msg_sequence
-                jmp ph5a_setup_L1
-ph5a_setup_L2:                
+                jmp mseq_next_L1
+mseq_next_L2:                
                 xchg \ shld blit_banner_p1+1 \ xchg
-ph5a_setup_L4
+mseq_next_L4:   ; следующий указатель из последовательности
                 mov e, m
                 inx h
                 mov d, m
@@ -918,13 +915,14 @@ ph5a_setup_L4
                 ;
                 mov a, d
                 ora e
-                jnz ph5a_setup_L3
+                jnz mseq_next_L3
                 sta mainseq_active
                 lxi h, msg_sequence
-                jmp ph5a_setup_L4
-ph5a_setup_L3:
+                jmp mseq_next_L4
+mseq_next_L3
                 xchg \ shld blit_banner_p2+1 \ xchg
                 shld msgptr                
+                xra a ; set zero flag 
                 ret
                 
 cosm
