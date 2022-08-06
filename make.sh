@@ -1,6 +1,7 @@
 set -e
 
 PASM=prettyasm/main.js
+BIN2WAV=../bin2wav/bin2wav.js
 ZX0=tools/zx0.exe
 
 ZX0_ORG=4000
@@ -9,6 +10,7 @@ ZX0_ORG=4000
 MAIN=oblitterated
 ROM=$MAIN-raw.rom
 ROMZ=$MAIN.rom
+WAV=$MAIN.wav
 ROM_ZX0=$MAIN.zx0
 DZX0_BIN=dzx0-fwd.$ZX0_ORG
 RELOC=reloc-zx0
@@ -38,6 +40,21 @@ maketexts()
       music_by_firestarter_b.png
       no_longer_inv1.png
       no_longer_inv2.png
+      null.png
+
+
+      gr_else.png
+      gr_errorsoft.png
+      gr_frog.png
+      gr_ivagor.png
+      gr_kansoft.png
+      gr_lafromm.png
+      gr_metamorpho.png
+      gr_nzeemin.png
+      gr_orgaz.png
+      gr_tnt23.png
+      gr_manwe.png
+
       "
 
     for f in $files; do
@@ -50,6 +67,19 @@ if ! test -e messages.inc; then
     echo "messages.inc: `wc -l messages.inc` lines"
 fi
 
+if ! test -e cafe.inc; then
+    tools/png2db-arzak.py assets/cafeparty-color.png -lineskip 1 -nplanes 2 -lut 0,3,2,1 -leftofs 14 -labels cafe_e0,cafe_c0 >cafe.inc
+    tools/png2db-arzak.py assets/cafeparty_bw.png -lineskip 1 -nplanes 2 -lut 0,3,2,1 -leftofs 14 -labels cafe_bw >>cafe.inc
+
+fi
+
+if ! test -e firestarter_2006_027.inc ; then
+  ./ym6break.py music/firestarter_2006_027.ym songA_
+fi
+
+if ! test -e firestarter_3elehaq.inc ; then
+    ./ym6break.py music/firestarter_3elehaq.ym songB_
+fi
 
 $PASM $MAIN.asm -o $ROM
 ROM_SZ=`cat $ROM | wc -c`
@@ -68,3 +98,5 @@ RELOC_SZ=`cat $RELOC_BIN | wc -c`
 echo "$RELOC_BIN: $RELOC_SZ octets"
 
 cat $RELOC_BIN $DZX0_BIN $ROM_ZX0 > $ROMZ
+
+$BIN2WAV -m v06c-turbo $ROMZ $WAV

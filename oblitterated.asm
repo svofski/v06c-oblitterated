@@ -1,16 +1,8 @@
+                ; OBLITTERATED
                 ; an unlikely max headroom incident
-                ; svo 2022
-
-                ; plot:
-                ; 1) полная мельтешня из линий
-                ; 2) на ее фоне медленно выползает Макс
-                ; 3) мельтешня становится плавной
-                ; 4) появляется надпись 
-		;
-		
-		; r.1 полностью развернутый блит с жумпом внутрь: 282 строки, но бывает один кадр 305
-		; r.2 версия с гигачад-16. есть пропуски кадров, но не критично.
-                ; r.3 версия с varblit и сообщениями двойной ширины
+                ;
+                ; Vector-06c demo
+                ; svo 2022 for cafeparty
 
                 .project oblitterated.rom
                 .tape v06c-rom
@@ -25,6 +17,11 @@ TILT3           equ 8
 BAND_THICC      equ 5           ; normal band base thickness
 BAND_STEP       equ 32          ; band period
 BAND_N          equ 8           ; number of bands
+
+                ; нормальное сообщение
+MSG_TIME        equ 100
+                ; первертствие
+GREET_TIME      equ 40
 
 
 
@@ -206,6 +203,7 @@ setcolors:
 modesw2:        ; переход на главную процедуру секвенции        
                 call 0
                 
+
                 ; музон
                 call gigachad_frame
                         
@@ -289,6 +287,7 @@ sequence
                 dw phase0_setup_loudnoise, phase0_main
                 dw phase0_setup_noise, phase0_main
                 dw phase0_setup, phase0_main    ; empty flicker and repeat
+                dw phaseA_setup, phaseA_main    ; logo display
                 dw Restart, Restart
 
                 
@@ -302,6 +301,8 @@ msg_sequence    dw msg_hello1, msg_hello2, msg_hello1, msg_hello2
                 dw msg_as_fast_as_i_can, msg_as_fast_as_i_can
                 dw msg_just_to_stay_where_i_am
                 dw msg_just_to_stay_where_i_am
+                dw msg_null
+                dw msg_null
                 dw msg_i_am_fully
                 dw msg_i_am_fully
                 dw msg_oblitterated, msg_oblitterated
@@ -309,17 +310,34 @@ msg_sequence    dw msg_hello1, msg_hello2, msg_hello1, msg_hello2
                 dw msg_oblitterated, msg_oblitterated
                 dw 0, 0
 
-;1234567890123456
-;
-;what a strange
-;place. i have
-;to blit myself
-;as fast as i can
-;just to stay
-;where i am!
-;
-;i am fully
-;oblitterated
+greetz_sequence 
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_errorsoft ;, msg_gr_errorsoft
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_frog      ;, msg_gr_frog
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_ivagor    ;, msg_gr_ivagor
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_kansoft   ;, msg_gr_kansoft
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_lafromm   ;, msg_gr_lafromm
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_manwe        ;, msg_gr_zx
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_metamorpho;, msg_gr_metamorpho
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_nzeemin   ;, msg_gr_nzeemin
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_tnt23     ;, msg_gr_tnt23
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_else      ;, msg_gr_else
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_orgaz     ;, msg_gr_orgaz
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_null, msg_null, ;msg_null, msg_null
+                dw 0, 0
 
 bss_start       equ $                
 ctr8i           db 0
@@ -340,6 +358,7 @@ ph1_height      db 0
 seq_index       db 0
 phase2_ctr      db 0                
 phase0_ctr      db 0
+var_ctr16       dw 0
 msg_timer       db 0
 mainseq_active  db 0            ; главная последовательность в процессе 
 bss_length      equ $-bss_start
@@ -559,6 +578,9 @@ phase5_setup:
                 sta mainseq_active
                 lxi h, $e0f0 ; a bogus last message position so that it's wiped safely
                 shld blit_banner_p3+1
+
+                mvi a, MSG_TIME
+                sta msg_seq_time
                 call msg_sequence_next
                 jmp gigachad_enable
                 ;ret
@@ -723,7 +745,19 @@ phase7_setup:
 
                 mvi a, 255
                 sta phase0_ctr
+
+                ; инициализация гритзов
+                lxi h, $e0f0 ; a bogus last message position so that it's wiped safely
+                shld blit_banner_p3+1
+                lxi h, greetz_sequence ; 29a
+                shld msgptr
+                mvi a, GREET_TIME
+                sta msg_seq_time
+                mvi a, 1
+                sta mainseq_active
+                call msg_sequence_next
                 ret
+
 phase7_main:
 titleout_xy     equ $0020+0e000h
 title_xy_1      equ titleout_xy + 12*256 + 14 * 8        ; oblitterated
@@ -733,9 +767,13 @@ title_xy_4      equ titleout_xy + 8 * 256               ; music by firestarter
 text_height     equ 18/2
 text_width      equ 1
 text_dwidth     equ 2
+
                 mvi a, text_height
                 sta blit_height
                 ;mvi a, text_width
+
+                ; greetz
+                call msg_sequence_frame
 
                 ; 8-column messages
                 lxi h, blit_line_c1 + (4 - text_width) * blit_linej_sz
@@ -782,8 +820,36 @@ text_dwidth     equ 2
                 shld blit_xy
                 call blit
 
-                lxi h, phase0_ctr
-                dcr m
+                ; blit greetz
+                lhld blit_banner_p1+1
+                shld blit_src1+1
+                lhld blit_banner_p2+1
+                shld blit_src2+1
+                lhld blit_banner_p3+1
+                shld blit_xy
+                call blit
+
+
+                ; cafeparty logo
+                mvi a, 0            ; disable interlace
+                sta varblit_ilace
+                lxi h, adj_for_scroll_exact
+                shld varblit_adj_vec 
+
+                mvi c, $5c
+                lxi d, cafe_bw
+                lxi h, cafe_bw
+                call varblit
+
+                lxi h, adj_for_scroll
+                shld varblit_adj_vec
+
+                ; эта фаза завершается когда заканчиваются тексты
+                ;lxi h, phase0_ctr
+                ;dcr m
+                ;rnz
+                lda mainseq_active
+                ora a
                 rnz
                 
                 jmp sequence_next
@@ -795,7 +861,7 @@ phase9_setup:
                 ; wipe
                 lxi h, titleout_xy + 8*256 + 16*8
                 shld wipe_xy
-                mvi a, text_height * 8
+                mvi a, text_height * 9
                 sta wipe_height
                 mvi a, 2
                 sta wipe_width
@@ -803,11 +869,72 @@ phase9_setup:
 
                 lxi h, titleout_xy + 8*256 + 16*8 + 1
                 shld wipe_xy
+                ;mvi a, $55
+                ;sta wipe_bitmap
                 jmp wipe
                 ;ret
 phase9_main:
                 jmp sequence_next
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PHASE A: final logo display
+;; hold for 1 minute = 3000 frames
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+endlogo_y       equ $90
+              
+phaseA_setup:   
+                call gigachad_disable
+                call ay_stfu
+                lxi h, 3000
+                shld var_ctr16
+                jmp Cls
+phaseA_main:
+                ; hijack the main loop because it's the end anyway
+                ei
+                hlt
+
+                lxi h, colors_logo+15
+                call colorset
+                lda frame_scroll
+                out 3
+
+                lxi h, adj_for_scroll_exact
+                shld varblit_adj_vec 
+
+                ; cafeparty logo
+                mvi a, 0
+                sta varblit_ilace   ; disable interlace
+                mvi a, $c0
+                sta varblit_plane   ; set plane = $c0
+                mvi c, endlogo_y
+                lxi d, cafe_c0
+                lxi h, cafe_c0
+                call varblit
+
+                mvi a, 0            ; disable interlace
+                sta varblit_ilace
+                mvi a, $e0        
+                sta varblit_plane   ; set plane = $e0
+
+                mvi c, endlogo_y
+                lxi d, cafe_e0
+                lxi h, cafe_e0
+                call varblit
+
+                lxi h, adj_for_scroll
+                shld varblit_adj_vec
+  
+                lhld var_ctr16
+                lxi b, -1
+                dad b
+                mov a, h
+                ora l
+                jz sequence_next
+                shld var_ctr16
+                jmp phaseA_main
 
 wipe_banner2ex: lhld blit_banner_p3+1
                 call adj_for_scroll
@@ -869,8 +996,6 @@ wipe_banner2:
                 jmp wipe
                 ; ret
 
-MSG_TIME        equ 100
-
                 ; Z = new message
                 ; NZ = not yet
 msg_sequence_frame:
@@ -878,6 +1003,7 @@ msg_sequence_frame:
                 dcr m
                 rnz
 msg_sequence_next
+msg_seq_time    equ $+1
                 mvi a, MSG_TIME
                 sta msg_timer
                 
@@ -1397,15 +1523,25 @@ line1_mod_dydx_gHi:
 		; --- конец line() ---
 		
 Cls:
-		lxi	h,08000h
-		mvi	e,0
-		xra	a
-ClrScr:
-		mov	m,e
-		inx	h
-		cmp	h
-		jnz	ClrScr
-		ret
+                lxi h, 0
+                dad sp
+                shld cls_sp+1
+                lxi sp, 0
+                lxi d, 0
+                ; 256/32 * 32 -> 256 times for one bitplane
+                lxi b, $400
+cls_L1:           
+                push d \ push d \ push d \ push d
+                push d \ push d \ push d \ push d
+                push d \ push d \ push d \ push d
+                push d \ push d \ push d \ push d
+                dcr c
+                jnz cls_L1
+                dcr b
+                jnz cls_L1
+cls_sp:         lxi sp, 0
+                ret
+
 
 		; выход:
 		; HL - число от 1 до 65535
@@ -1439,7 +1575,6 @@ cyclecolors:
 cycle_red                
                 lxi h, col_r
                 inr m \ inr m \ inr m
-                ;call cosm
                 call triam
                 
                 jmp update_red
@@ -1455,8 +1590,6 @@ cycle_bleu
                 inr m
                 call triam
                 
-                ;call update_bleu
-                ;ret
 update_bleu
                 mov a, e
                 ani 300q
@@ -1531,7 +1664,23 @@ colors:         ; octal bgr 2:3:3
                 ;  1_0_0_0: $80  : 1000 1010 1100 1110
                 ;  0_1_0_0: $a0  : 0100 0110 1100 1110
                 ;  0_0_1_0: $c0  : 0010 0110 1010 1110
-                ;  0_0_0_1; $e0
+                ;  0_0_0_1; $e0  
+
+                ;      0 0: black   0, 4, 8, 12
+                ;      0 1: white   1, 5, 9, 13
+                ;      1 0: yellow  2, 6, 10, 14
+                ;      1 1: blue    3, 7, 11, 15
+
+col_black       equ 000q
+col_white       equ 377q
+col_yellow      equ 067q
+col_blue        equ 221q
+
+colors_logo     .db col_black, col_white, col_yellow, col_blue
+                .db col_black, col_white, col_yellow, col_blue
+                .db col_black, col_white, col_yellow, col_blue
+                .db col_black, col_white, col_yellow, col_blue
+
 colors_1                
                 .db 000q,377q,000q,377q,000q,377q,000q,377q
                 .db 307q,377q,307q,377q,307q,377q,307q,377q ; -- all $8000
@@ -1541,6 +1690,7 @@ colors_2
 colors_3
                 .db 000q,377q,327q,377q,000q,377q,327q,377q
                 .db 000q,377q,327q,377q,000q,377q,327q,377q ; -- all $c000
+
 
 colors_nil:     .db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
@@ -1557,6 +1707,7 @@ varblit:
                 ; select glitchy frame
                 call sel_glitchy ; chosen frame in d
                 mov l, c
+varblit_adj_vec equ $+1
                 call adj_for_scroll
                 mov c, l
 
@@ -1604,7 +1755,8 @@ vbline_16:      pop b \ mov m, c \ inr h \ mov m, b \ inr h
                 pop b \ mov m, c \ inr h \ mov m, b; \ inr h
 
 vb_L2:          ; next line (interlaced)
-                dcr l \ dcr l
+varblit_ilace:  dcr l 
+                dcr l
                 dcr d
                 jnz vb_L0
                 ;jmp vb_L0
@@ -1613,6 +1765,8 @@ vb_exit:
                 ; restore clip_h because it's so easy to forget
                 xra
                 sta varblit_clip_h
+                mvi a, $2d ; dcr l
+                sta varblit_ilace
 varblit_sp      equ $+1
                 lxi sp, 0
                 ret
@@ -1641,6 +1795,22 @@ adj_for_scroll
                 sbi 0
                 add l
                 mov l, a
+                ret
+
+                ; works for the logo (non-interlace)
+                ; bad for the main part
+adj_for_scroll_exact:
+                ; adjust for scroll direction
+                lda fasign 
+                rar
+                push psw
+                lda frame_scroll
+                sbi 0
+                add l
+                mov l, a
+                pop psw
+                rnc
+                inr l
                 ret
 
 		; Вывести транспарант посреди экрана
@@ -1746,7 +1916,8 @@ wipe_xy_:       lxi h, LOGOXY
 
                 mov b, h        ; сохраним в b первый столб
 
-                lxi d, 0
+wipe_bitmap     equ $+1
+                mvi d, 0
                 mvi a, 124/2    ; ПАРАМЕТР: число пар строк
 wipe_line:
                 mvi c, 128/8/8  ; ПАРАМЕТР: размер по горизонтали в байтах/8
@@ -1782,8 +1953,11 @@ varmax_bottom_a:
 varmax_bottom_b:
 .include varmax_bottom_b.inc
 
-
+; all text messages
 .include messages.inc
+
+; cafeparty logo bitmaps
+.include cafe.inc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1798,10 +1972,6 @@ n_tasks         equ 14
 ; task stack size 
 task_stack_size equ 22
 
-
-;brutal_restart:                
-;                lxi sp, $100
-            
                 ; intro song
 song_1:         dw songA_00, songA_01, songA_02, songA_03, songA_04, songA_05, songA_06
                 dw songA_07, songA_08, songA_09, songA_10, songA_11, songA_12, songA_13            
@@ -2208,42 +2378,13 @@ dzx0_ded       ; jmp brutal_restart
 ;   2. salvador -classic -w 256 register_stream
 ;   3. make db strings etc
 
-; /3E/!EHA,q Da/!uHa___... . .NC/
-; /Firestarter_HDS    25.12.2002/
-; Created by Sergey Bulba's AY-3-8910/12 Emulator v2.9
-songB_00: db $96,$ef,$9e,$df,$e8,$16,$ea,$c8,$fe,$85,$5a,$8e,$16,$9a,$77,$c8,$5f,$b0,$7d,$a8,$ff,$c8,$c0,$7d,$70,$bb,$0a,$fe,$91,$40,$7e,$48,$f3,$9f,$fe,$d7,$40,$df,$d0,$40,$c9,$80,$05,$55,$c0,$00,$20
-songB_01: db $96,$00,$9f,$01,$e8,$0e,$fe,$05,$39,$40,$41,$55,$c0,$00,$20
-songB_02: db $80,$be,$58,$3f,$ef,$c8,$9f,$77,$f8,$e8,$fe,$be,$05,$a1,$df,$68,$be,$05,$a1,$16,$68,$be,$56,$85,$20,$a1,$be,$57,$2b,$81,$96,$db,$f8,$be,$c0,$fe,$4c,$d5,$50,$cc,$80,$06,$bf,$9f,$f8,$e8,$fe,$be,$05,$a1,$df,$72,$b0,$05,$6e,$20,$fe,$4c,$c0,$80,$6b,$96,$db,$f8,$be,$c0,$fe,$4c,$d5,$50,$cc,$80,$06,$bf,$9f,$f8,$e8,$fe,$be,$05,$a1,$df,$72,$b0,$05,$6e,$20,$fe,$4c,$c0,$80,$6b,$96,$db,$f8,$be,$c0,$fe,$4c,$d5,$50,$cc,$80,$06,$bf,$9f,$f8,$e8,$fe,$be,$05,$a1,$df,$72,$b0,$05,$6e,$20,$fe,$4c,$c0,$80,$6b,$96,$db,$f8,$be,$85,$fe,$4c,$d5,$50,$70,$00,$08
-songB_03: db $19,$03,$06,$08,$09,$03,$56,$85,$00,$e1,$a0,$7d,$78,$6e,$01,$fe,$4e,$40,$05,$b9,$02,$fe,$38,$a0,$e4,$fe,$4c,$85,$80,$5f,$48,$5c,$c5,$e0,$73,$50,$5c,$c4,$80,$5b,$01,$93,$fe,$d5,$40,$cd,$b0,$79,$a0,$5c,$c1,$80,$5f,$d0,$5c,$c5,$e0,$73,$50,$5c,$c4,$80,$5b,$01,$93,$fe,$d5,$40,$cd,$b0,$79,$a0,$5c,$c1,$80,$5f,$d0,$5c,$c5,$e0,$73,$50,$5c,$c4,$80,$5b,$01,$93,$fe,$d5,$40,$cd,$b0,$79,$a0,$5c,$c1,$80,$5f,$d0,$5c,$c5,$e0,$73,$50,$5e,$a2,$57,$00,$00,$80
-songB_04: db $85,$ef,$69,$0a,$69,$df,$a1,$0a,$69,$ef,$02,$09,$d0,$b1,$92,$85,$68,$77,$57,$d5,$40,$ff,$10,$30,$56,$ee,$9f,$fe,$60,$5b,$df,$ca,$fe,$85,$15,$a1,$9f,$68,$85,$56,$81,$77,$5f,$28,$73,$f0,$73,$e8,$79,$08,$5b,$c8,$93,$fe,$25,$08,$f1,$54,$ff,$dc,$f4,$1f,$f0,$ee,$85,$0a,$fe,$f3,$79,$3c,$f7,$e8,$fd,$d8,$b8,$f7,$c0,$e6,$b5,$d8,$0c,$77,$58,$b1,$92,$88,$61,$42,$42,$22,$3b,$3b,$0f,$f5,$fc,$e4,$d8,$7d,$28,$e4,$40,$7f,$10,$97,$e8,$de,$28,$10,$58,$cf,$4f,$4f,$15,$40,$7f,$6c,$ff,$80,$7d,$f5,$fd,$0c,$40,$ff,$d8,$08,$7f,$a0,$e7,$9d,$f4,$fd,$b8,$e0,$7f,$b8,$df,$60,$f4,$7f,$e0,$85,$f4,$f7,$28,$fd,$ec,$50,$fe,$a0,$28,$5c,$96,$08,$7b,$64,$64,$c8,$fe,$9c,$f4,$df,$80,$d8,$f7,$20,$37,$38,$85,$f4,$cf,$18,$ff,$fd,$79,$18,$df,$e8,$dc,$e5,$a0,$60,$f2,$77,$58,$b1,$92,$99,$14,$72,$80,$57,$d5,$40,$f8,$cd,$10,$79,$30,$5c,$97,$38,$ff,$6c,$80,$f9,$7d,$f1,$0c,$e0,$f4,$7f,$a0,$e7,$9d,$f4,$95,$b8,$f7,$60,$d5,$f4,$f7,$28,$fd,$ec,$50,$fe,$c4,$08,$47,$aa,$ff,$64,$c8,$79,$f4,$c9,$78,$79,$20,$72,$30,$17,$fb,$d8,$61,$0a,$bf,$fe,$79,$18,$f7,$e8,$fd,$f0,$b8,$f7,$c0,$e6,$b5,$d8,$0c,$77,$58,$b1,$92,$d7,$60,$31,$38,$e5,$28,$e4,$40,$7f,$10,$97,$e8,$de,$28,$10,$5c,$fd,$10,$40,$ff,$6c,$80,$ff,$7d,$f5,$34,$f7,$40,$fd,$d8,$08,$ff,$a0,$9d,$9f,$f4,$b8,$f5,$e0,$ff,$b8,$60,$7d,$f4,$fe,$e0,$f4,$17,$df,$28,$ec,$f7,$50,$f9,$a0,$28,$72,$08,$59,$ee,$64,$64,$c8,$fe,$f4,$73,$80,$7f,$d8,$25,$80,$c0,$00,$20
-songB_05: db $85,$00,$68,$01,$56,$80,$00,$57,$95,$48,$e5,$30,$5c,$85,$d0,$1f,$28,$55,$7d,$24,$79,$f0,$e5,$e8,$f5,$c0,$fe,$b4,$40,$10,$7e,$11,$5c,$47,$85,$38,$f5,$a0,$39,$fe,$04,$c9,$24,$5e,$28,$54,$7f,$f5,$10,$f7,$f4,$94,$40,$1c,$c5,$38,$73,$d4,$55,$e1,$28,$55,$f9,$f5,$e8,$7d,$c0,$7f,$b4,$81,$40,$1c,$c5,$38,$e1,$38,$7d,$a0,$4e,$fe,$44,$3e,$29,$4c,$15,$70,$00,$08
-songB_06: db $61,$04,$02,$00,$1f,$d0,$13,$94,$fe,$39,$40,$41,$55,$c0,$00,$20
-songB_07: db $85,$30,$a1,$32,$69,$30,$69,$20,$5a,$30,$5a,$22,$5f,$80,$79,$a0,$7d,$70,$7d,$98,$7d,$a0,$5e,$58,$15,$fc,$28,$c1,$80,$73,$e0,$57,$d7,$a8,$d5,$40,$f7,$70,$91,$a0,$0f,$fe,$4c,$c5,$88,$f7,$a0,$d7,$70,$d7,$98,$d5,$a0,$e1,$58,$5f,$28,$cc,$80,$17,$35,$e0,$7d,$a8,$7d,$40,$5f,$70,$79,$a0,$10,$f4,$fe,$cc,$88,$5f,$a0,$7d,$70,$7d,$98,$7d,$a0,$5e,$58,$15,$fc,$28,$c1,$80,$73,$e0,$57,$d7,$a8,$d5,$40,$f7,$70,$91,$a0,$0f,$fe,$4c,$c5,$88,$f7,$a0,$d7,$70,$d7,$98,$d5,$a0,$e1,$58,$5f,$28,$cc,$80,$17,$35,$e0,$7d,$a8,$7d,$40,$5f,$70,$7c,$a0,$17,$00,$00,$80
-songB_08: db $6a,$0f,$0e,$0b,$0a,$aa,$09,$0c,$aa,$0b,$07,$aa,$06,$05,$af,$04,$e8,$e5,$d0,$0f,$88,$5e,$57,$7f,$0e,$0d,$0d,$5d,$70,$42,$e7,$0d,$88,$d5,$40,$72,$80,$41,$55,$70,$00,$08
-songB_09: db $a6,$0f,$0d,$08,$00,$5a,$1f,$05,$a6,$00,$aa,$0c,$0b,$ab,$0a,$09,$fd,$b8,$a0,$e4,$93,$f7,$0a,$06,$04,$03,$02,$01,$d8,$df,$a0,$70,$5f,$40,$7d,$98,$7d,$a0,$5f,$b8,$17,$97,$28,$24,$80,$58,$32,$08,$08,$07,$07,$e0,$17,$35,$80,$ff,$c0,$48,$7d,$40,$5c,$d7,$50,$90,$a0,$5c,$df,$80,$a0,$78,$18,$5f,$a0,$7d,$70,$7d,$40,$f5,$10,$f5,$a0,$7c,$b8,$5f,$28,$72,$80,$55,$83,$08,$08,$07,$07,$21,$e0,$73,$80,$5f,$c0,$f7,$48,$d5,$40,$cd,$50,$79,$a0,$05,$cd,$80,$f7,$a0,$85,$18,$f7,$a0,$d7,$70,$df,$40,$10,$5f,$a0,$57,$c5,$b8,$f7,$28,$25,$80,$58,$32,$08,$08,$07,$07,$e0,$17,$35,$80,$ff,$c0,$48,$7d,$40,$5c,$d7,$50,$90,$a0,$5c,$df,$80,$a0,$78,$18,$5f,$a0,$7d,$70,$7d,$40,$f5,$10,$f5,$a0,$7c,$b8,$5f,$28,$72,$80,$55,$83,$08,$08,$07,$07,$21,$e0,$73,$80,$5f,$c0,$f7,$48,$d5,$40,$cd,$50,$79,$a0,$57,$00,$00,$80
-songB_10: db $08,$0f,$0e,$0d,$0c,$43,$fd,$d0,$f0,$e5,$b8,$e5,$a0,$3c,$b8,$57,$fd,$40,$e8,$7d,$30,$5f,$a0,$5c,$81,$d0,$5f,$f8,$57,$95,$10,$f4,$08,$3d,$e8,$5e,$ea,$90,$e2,$0b,$0a,$09,$08,$07,$06,$05,$04,$03,$02,$01,$00,$fe,$ef,$09,$e0,$d0,$7f,$c0,$df,$b8,$d0,$e5,$e8,$ee,$96,$94,$ff,$93,$d0,$97,$70,$91,$b8,$7f,$40,$95,$e8,$f6,$38,$e4,$09,$20,$e5,$a0,$5f,$18,$5c,$d7,$90,$d6,$b8,$09,$02,$01,$00,$00,$0b,$01,$e0,$e1,$fe,$cd,$98,$5e,$10,$5c,$95,$20,$fe,$d0,$a0,$5b,$0f,$b8,$06,$fe,$5f,$d0,$f7,$f0,$97,$b8,$94,$a0,$f1,$b8,$5f,$40,$f5,$e8,$f5,$30,$7d,$a0,$72,$d0,$05,$7d,$f8,$5e,$10,$57,$d0,$08,$f5,$e8,$7a,$ea,$43,$0b,$0a,$09,$08,$07,$06,$05,$04,$03,$02,$01,$00,$8b,$fe,$09,$bd,$e0,$d0,$ff,$f0,$b8,$7f,$d0,$97,$e8,$bb,$96,$94,$fe,$93,$d0,$70,$5e,$b8,$45,$fe,$40,$e8,$57,$db,$38,$09,$93,$20,$95,$a0,$7d,$18,$73,$90,$5f,$b8,$58,$24,$02,$01,$00,$00,$2f,$01,$e1,$83,$fe,$35,$98,$79,$10,$72,$20,$57,$f9,$d0,$a0,$70,$00,$08
-songB_11: db $85,$00,$a0,$3c,$15,$a0,$1e,$16,$85,$3c,$a1,$22,$5a,$3c,$16,$85,$32,$a1,$3c,$05,$73,$68,$0f,$fe,$11,$28,$1e,$05,$c9,$b0,$5c,$95,$98,$b9,$32,$fe,$28,$3c,$41,$5c,$c3,$68,$c4,$fe,$4a,$1e,$01,$72,$b0,$57,$25,$98,$6e,$32,$fe,$4a,$3c,$10,$57,$30,$68,$f1,$fe,$12,$80,$1e,$5c,$95,$b0,$c9,$98,$5b,$32,$92,$fe,$84,$3c,$05,$cd,$50,$79,$b8,$5c,$00,$02
-songB_12: db $85,$00,$55,$57,$00,$00,$80
-songB_13: db $85,$ff,$b9,$0a,$e8,$2b,$08,$90,$fe,$7d,$a0,$68,$0a,$05,$6c,$08,$95,$c8,$33,$80,$55,$f5,$a0,$68,$0a,$05,$5a,$ff,$15,$a5,$0a,$57,$d5,$58,$b2,$08,$80,$45,$3d,$a0,$5a,$0a,$01,$56,$85,$ff,$69,$0a,$55,$f5,$58,$6c,$08,$91,$80,$4f,$a0,$56,$80,$0a,$55,$a1,$ff,$5a,$0a,$55,$7d,$58,$5b,$08,$24,$80,$53,$d5,$a0,$a1,$0a,$05,$c0,$00,$20
+; songA_00
+.include firestarter_3elehaq.inc
 
 ; I CAN (SUX MIX)
 ; 2006.04.22 Firestarter_HDS
 ; Created by Sergey Bulba's AY-3-8910/12 Emulator v2.9
-songA_00: db $84,$00,$55,$5a,$44,$11,$55,$c0,$00,$20
-songA_01: db $84,$00,$55,$5a,$03,$11,$55,$c0,$00,$20
-songA_02: db $96,$44,$85,$d5,$68,$60,$5a,$44,$69,$07,$68,$f9,$16,$85,$39,$a5,$44,$a0,$60,$5a,$39,$57,$31,$f8,$6f,$a2,$fe,$4c,$c0,$a0,$17,$9b,$2c,$84,$8c,$20,$d5,$a0,$e5,$a8,$cd,$a0,$5f,$50,$72,$a0,$05,$f7,$50,$20,$a0,$15,$5c,$00,$02
-songA_03: db $19,$03,$06,$08,$09,$03,$a0,$01,$17,$fd,$a8,$b0,$b8,$00,$fe,$4e,$a8,$5f,$50,$57,$c5,$a8,$73,$a0,$00,$5b,$03,$9a,$ff,$04,$05,$06,$83,$03,$35,$a0,$79,$a8,$78,$50,$57,$24,$f8,$5c,$80,$a0,$55,$70,$00,$08
-songA_04: db $85,$00,$a5,$3b,$a1,$44,$89,$84,$44,$0a,$fc,$16,$9a,$44,$c5,$45,$f5,$80,$bd,$fc,$fe,$3d,$40,$e1,$fe,$7d,$00,$6f,$10,$fe,$13,$25,$a0,$00,$f1,$fe,$29,$fc,$5a,$c5,$11,$68,$fc,$45,$f5,$10,$c8,$a0,$05,$57,$00,$00,$80
-songA_05: db $85,$00,$a5,$08,$a2,$03,$6a,$04,$05,$06,$03,$42,$85,$0a,$fb,$c0,$07,$c4,$fe,$f5,$80,$bd,$0a,$fe,$3d,$40,$e1,$fe,$7d,$00,$6f,$0d,$fe,$13,$25,$a0,$00,$f1,$fe,$29,$0a,$5a,$07,$11,$68,$0a,$45,$f5,$10,$c8,$a0,$05,$57,$00,$00,$80
-songA_06: db $80,$00,$05,$57,$00,$00,$80
-songA_07: db $96,$10,$9a,$12,$32,$69,$12,$a8,$36,$e2,$00,$20,$ef,$00,$04,$ef,$f9,$00,$d0,$f7,$c8,$df,$b0,$c1,$f7,$ab,$a8,$fe,$91,$b4,$b0,$1f,$c0,$6e,$30,$4f,$e8,$14,$fe,$97,$30,$32,$d3,$c0,$ee,$2e,$16,$fe,$e3,$78,$35,$f8,$e5,$c0,$f5,$88,$cc,$a0,$01,$7a,$d5,$00,$32,$f7,$eb,$02,$fe,$10,$21,$a0,$7d,$a8,$5f,$50,$57,$fc,$00,$a8,$1f,$fe,$62,$20,$30,$ab,$20,$22,$25,$a0,$55,$bc,$19,$fe,$a6,$1b,$9a,$3b,$1b,$18,$aa,$09,$19,$09,$9e,$0b,$d0,$3d,$c8,$f7,$b0,$d5,$a8,$ff,$78,$50,$17,$fc,$b0,$a8,$1f,$fe,$62,$29,$39,$ab,$29,$2b,$f9,$30,$50,$72,$a0,$45,$5c,$00,$02
-songA_08: db $39,$00,$00,$fc,$15,$56,$2a,$10,$1e,$1d,$aa,$1c,$1b,$aa,$1a,$19,$aa,$18,$17,$aa,$16,$15,$aa,$14,$13,$aa,$12,$11,$e1,$fe,$00,$c9,$a0,$15,$70,$00,$08
-songA_09: db $a6,$0f,$0e,$0c,$00,$f8,$fc,$aa,$10,$1e,$1d,$aa,$1c,$1b,$ae,$1a,$19,$e4,$ba,$18,$dc,$f1,$17,$d0,$ff,$a8,$b0,$6e,$1f,$fe,$4f,$84,$fe,$f0,$a8,$5e,$50,$47,$e3,$55,$59,$10,$16,$d7,$d8,$91,$a8,$73,$a0,$00,$5f,$e9,$a8,$d5,$0d,$72,$0b,$0a,$0a,$09,$08,$a0,$00,$e5,$a8,$7c,$50,$5c,$91,$f8,$72,$a0,$01,$55,$c0,$00,$20
-songA_10: db $85,$00,$a7,$0c,$99,$ec,$a3,$0f,$0f,$0d,$0b,$0a,$85,$c8,$f7,$c0,$df,$e0,$f8,$5e,$80,$59,$e0,$0a,$09,$08,$88,$f1,$c0,$7d,$30,$79,$80,$7d,$30,$73,$a0,$00,$5f,$c8,$57,$d5,$a8,$ff,$50,$a8,$40,$f4,$fe,$c8,$a0,$05,$57,$00,$00,$80
-songA_11: db $96,$00,$61,$3f,$3d,$3b,$19,$91,$30,$2e,$2c,$98,$25,$23,$21,$68,$1f,$16,$60,$2b,$29,$27,$1f,$80,$f5,$fc,$ee,$b0,$fe,$43,$21,$f8,$67,$38,$36,$34,$90,$fe,$c8,$a0,$00,$57,$dc,$b8,$91,$a0,$15,$c0,$00,$20
-songA_12: db $80,$00,$05,$57,$00,$00,$80
-songA_13: db $96,$ff,$25,$0a,$ff,$39,$d0,$5a,$0a,$10,$f4,$d8,$4f,$a8,$55,$cd,$a0,$55,$5a,$0a,$11,$55,$c0,$00,$20
-
+.include firestarter_2006_027.inc
 
 
 ;

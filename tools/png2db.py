@@ -9,6 +9,12 @@ from utils import *
 from base64 import b64encode
 import array
 
+lut = [0] * 256 # for grayscale input
+lut[255] = 255    # if grayscale b&w
+lut[1] = 255      # for indexed 1bpp
+lut[2] = 2
+lut[3] = 3
+
 def readPNG(filename):
     reader = None
     pix = None
@@ -35,6 +41,14 @@ print(f'msg_{os.path.basename(origname)}:', end='')
 columnous=False
 xbytes = len(pic[0])//8
 nlines = len(pic)
+
+pic_lut = []
+for line in pic:
+    l2 = [lut[c] for c in line]
+    pic_lut.append(l2)
+
+pic = pic_lut
+
 if columnous:
     # the picture is lines of 1 byte per pixel data
     # we need columns of 1 bit per pixel data
