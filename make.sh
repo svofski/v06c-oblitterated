@@ -54,6 +54,7 @@ maketexts()
       gr_orgaz.png
       gr_tnt23.png
       gr_manwe.png
+      gr_rts.png
 
       "
 

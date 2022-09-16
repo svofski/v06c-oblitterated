@@ -335,6 +335,8 @@ greetz_sequence
                 dw msg_null, msg_null, ;msg_null, msg_null
                 dw msg_gr_orgaz     ;, msg_gr_orgaz
                 dw msg_null, msg_null, ;msg_null, msg_null
+                dw msg_gr_rts       ;, msg_gr_rts
+                dw msg_null, msg_null, ;msg_null, msg_null
                 dw msg_null, msg_null, ;msg_null, msg_null
                 dw msg_null, msg_null, ;msg_null, msg_null
                 dw 0, 0
@@ -1722,7 +1724,7 @@ varblit_adj_vec equ $+1
 varblit_clip_h  equ $+1
                 mvi d, 0
 vb_L0:
-                pop b   ; e = first column, d = number of 2-column chunks (0-16)
+                pop b   ; c = first column, b = number of 2-column chunks (0-16)
                 mov a, b
                 ora c
                 jz vb_exit
@@ -1732,7 +1734,7 @@ varblit_plane   equ $+1
                 add c
                 mov h, a        ; hl = screen addr
 
-                mov a, b  ; d = precalculated offset into vbline_16
+                mov a, b  ; b = precalculated offset into vbline_16
                 sta vb_M1+1 
 vb_M1:          jmp vbline_16
 vb_L1:
